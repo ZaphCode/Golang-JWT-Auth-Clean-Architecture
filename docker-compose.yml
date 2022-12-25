@@ -1,0 +1,16 @@
+version: '3.9'
+services:
+  auth_pgsql-db:
+    container_name: auth_pgsql-db
+    image: postgres
+    restart: always
+    environment: 
+      - POSTGRES_USER=zaphkiel
+      - POSTGRES_PASSWORD=zaph_pg_pass
+      - POSTGRES_DB=jwt_auth_db
+    ports: 
+      - "5400:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+volumes:
+  postgres_data:
