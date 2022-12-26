@@ -32,4 +32,5 @@ type UserRepository interface {
 	FindByEmail(email string) (*User, error)
 	FindByID(ID uuid.UUID) (*User, error)
 	Remove(ID uuid.UUID) error
+	Migrate()
 }

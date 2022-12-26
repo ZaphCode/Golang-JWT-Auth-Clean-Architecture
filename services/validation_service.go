@@ -19,14 +19,15 @@ type validationServiceImpl struct {
 
 func (s *validationServiceImpl) Validate(data any) error {
 	err := s.validator.Struct(data)
-	var errors ValidationErrors
 	if err != nil {
+		var errors ValidationErrors
 		for _, err := range err.(validator.ValidationErrors) {
 			element := FieldError{err.Field(), s.getErrorMsg(err)}
 			errors = append(errors, element)
 		}
+		return errors
 	}
-	return errors
+	return nil
 }
 
 func (s *validationServiceImpl) getErrorMsg(fe validator.FieldError) string {

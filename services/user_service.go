@@ -44,6 +44,10 @@ func (s *userServiceImpl) Create(user *domain.User) error {
 
 	user.Role = "user"
 
+	if user.ProfileData == nil {
+		user.ProfileData = []byte("{}")
+	}
+
 	if err := s.repo.Save(user); err != nil {
 		return fmt.Errorf("repo.Save(): %w", err)
 	}

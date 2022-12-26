@@ -11,7 +11,7 @@ type SignUpDTO struct {
 	Email       string          `json:"email" validate:"required,email"`
 	Password    string          `json:"password" validate:"required,min=8"`
 	Age         uint            `json:"age" validate:"required,number,min=15"`
-	ProfileData json.RawMessage `json:"profile_data" validate:"required"`
+	ProfileData json.RawMessage `json:"profile_data"`
 }
 
 func (d *SignUpDTO) AdaptToUser() domain.User {

@@ -3,10 +3,10 @@ package auth
 import (
 	"time"
 
-	"github.com/ZaphCode/auth-jwt-app/api"
 	"github.com/ZaphCode/auth-jwt-app/controllers/auth/dtos"
 	"github.com/ZaphCode/auth-jwt-app/domain"
 	"github.com/ZaphCode/auth-jwt-app/services"
+	apiUtils "github.com/ZaphCode/auth-jwt-app/utils"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -31,18 +31,19 @@ type AuthController struct {
 	validationService services.ValidationService
 }
 
-func (c AuthController) SignUp(ctx fiber.Ctx) error {
+func (c AuthController) SignUp(ctx *fiber.Ctx) error {
 	body := dtos.SignUpDTO{}
 
-	if err := ctx.BodyParser(body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(api.ErrorResponse{
+	if err := ctx.BodyParser(&body); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: "Error parsing de request body",
+			Detail:  err.Error(),
 		})
 	}
 
 	if err := c.validationService.Validate(&body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: "Validation error",
 			Detail:  err,
@@ -52,9 +53,10 @@ func (c AuthController) SignUp(ctx fiber.Ctx) error {
 	user := body.AdaptToUser()
 
 	if err := c.userService.Create(&user); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusInternalServerError).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: "Creating user error",
+			Detail:  err.Error(),
 		})
 	}
 
@@ -64,7 +66,7 @@ func (c AuthController) SignUp(ctx fiber.Ctx) error {
 	}, time.Minute*5)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusInternalServerError).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: err.Error(),
 		})
@@ -76,13 +78,13 @@ func (c AuthController) SignUp(ctx fiber.Ctx) error {
 	}, time.Hour*24*5)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusInternalServerError).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: err.Error(),
 		})
 	}
 
-	return ctx.Status(fiber.StatusAccepted).JSON(api.SuccessResponse{
+	return ctx.Status(fiber.StatusAccepted).JSON(apiUtils.SuccessResponse{
 		Status:  "success",
 		Message: "User created",
 		Data: fiber.Map{
@@ -93,18 +95,19 @@ func (c AuthController) SignUp(ctx fiber.Ctx) error {
 	})
 }
 
-func (c AuthController) SignIn(ctx fiber.Ctx) error {
+func (c AuthController) SignIn(ctx *fiber.Ctx) error {
 	body := dtos.SignInDTO{}
 
-	if err := ctx.BodyParser(body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(api.ErrorResponse{
+	if err := ctx.BodyParser(&body); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: "Error parsing de request body",
+			Detail:  err.Error(),
 		})
 	}
 
 	if err := c.validationService.Validate(&body); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: "Validation error",
 			Detail:  err,
@@ -114,14 +117,14 @@ func (c AuthController) SignIn(ctx fiber.Ctx) error {
 	user, err := c.userService.GetByEmail(body.Email)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: err.Error(),
 		})
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: err.Error(),
 		})
@@ -133,7 +136,7 @@ func (c AuthController) SignIn(ctx fiber.Ctx) error {
 	}, time.Minute*5)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusInternalServerError).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: err.Error(),
 		})
@@ -145,13 +148,13 @@ func (c AuthController) SignIn(ctx fiber.Ctx) error {
 	}, time.Hour*24*5)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(api.ErrorResponse{
+		return ctx.Status(fiber.StatusInternalServerError).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: err.Error(),
 		})
 	}
 
-	return ctx.Status(fiber.StatusAccepted).JSON(api.SuccessResponse{
+	return ctx.Status(fiber.StatusAccepted).JSON(apiUtils.SuccessResponse{
 		Status:  "success",
 		Message: "User created",
 		Data: fiber.Map{
