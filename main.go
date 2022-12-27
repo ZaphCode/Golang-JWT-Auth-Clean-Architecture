@@ -1,16 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/ZaphCode/auth-jwt-app/api"
 )
 
 func main() {
-	fmt.Println("TEST")
-
 	app := api.Setup()
 
-	log.Fatal(app.Listen(":8000"))
+	log.Fatal(app.Listen(":" + os.Getenv("PORT")))
 }

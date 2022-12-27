@@ -48,8 +48,6 @@ func (s *validationServiceImpl) getErrorMsg(fe validator.FieldError) string {
 	return "Unknown error"
 }
 
-// Custom erro types
-
 type ValidationErrors []FieldError
 
 func (ValidationErrors) Error() string {

@@ -13,8 +13,8 @@ func Setup() *fiber.App {
 
 	//* Auth Routes setup
 	repo := user.NewUserRepository(user.GetPGSQLConnection())
-	authService := services.NewAuthService()
 	userService := services.NewUserService(repo)
+	authService := services.NewAuthService()
 	validationService := services.NewValidationService()
 	authController := auth.NewAuthController(authService, userService, validationService)
 

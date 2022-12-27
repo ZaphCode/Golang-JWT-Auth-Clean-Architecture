@@ -8,4 +8,6 @@ import (
 func CreateAuthRoutes(router fiber.Router, authController auth.AuthController) {
 	router.Post("/signup", authController.SignUp)
 	router.Post("/signin", authController.SignIn)
+	router.Get("/me", authController.JWTRequiredMiddleware, authController.AuthUser)
+	router.Get("/refresh", authController.RefreshToken)
 }
