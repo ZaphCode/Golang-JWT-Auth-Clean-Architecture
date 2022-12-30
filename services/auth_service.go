@@ -11,8 +11,8 @@ import (
 
 //* Service
 type AuthService interface {
-	CreateJWToken(sub JWTClaims, expiration time.Duration) (string, error)
-	DecodeJWToken(jwtoken string) (*JWTClaims, error)
+	CreateJWToken(sub JWTClaims, expiration time.Duration, refreshType bool) (string, error)
+	DecodeJWToken(jwtoken string, refreshType bool) (*JWTClaims, error)
 	CreateAccessAndRefreshJWTokens(sub JWTClaims, access_exp, refresh_exp time.Duration) (string, string, error)
 }
 
@@ -24,21 +24,31 @@ func NewAuthService() AuthService {
 //* Implementation
 type authServiceImpl struct{}
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+var (
+	accessJwtSecret  = []byte(os.Getenv("ACCESS_JWT_SECRET"))
+	refreshJwtSecret = []byte(os.Getenv("REFRESH_JWT_SECRET"))
+)
 
 type JWTClaims struct {
 	ID   uuid.UUID
 	Role string
 }
 
-func (s *authServiceImpl) CreateJWToken(sub JWTClaims, expiration time.Duration) (string, error) {
+func (s *authServiceImpl) CreateJWToken(sub JWTClaims, expiration time.Duration, refreshType bool) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"exp":       time.Now().Add(expiration).Unix(),
 		"user_id":   sub.ID.String(),
 		"user_role": sub.Role,
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)
+	var tokenString string
+	var err error
+
+	if refreshType {
+		tokenString, err = token.SignedString(refreshJwtSecret)
+	} else {
+		tokenString, err = token.SignedString(accessJwtSecret)
+	}
 
 	if err != nil {
 		return "", err
@@ -48,23 +58,27 @@ func (s *authServiceImpl) CreateJWToken(sub JWTClaims, expiration time.Duration)
 }
 
 func (s *authServiceImpl) CreateAccessAndRefreshJWTokens(sub JWTClaims, access_exp, refresh_exp time.Duration) (string, string, error) {
-	accessTokenString, err_1 := s.CreateJWToken(sub, access_exp)
+	accessTokenString, err_1 := s.CreateJWToken(sub, access_exp, false)
 
-	refreshTokenString, err_2 := s.CreateJWToken(sub, refresh_exp)
+	refreshTokenString, err_2 := s.CreateJWToken(sub, refresh_exp, true)
 
 	if err_1 != nil || err_2 != nil {
-		return "", "", fmt.Errorf("error creating the jwt")
+		return "", "", fmt.Errorf("error creating tokens")
 	}
 
 	return accessTokenString, refreshTokenString, nil
 }
 
-func (s *authServiceImpl) DecodeJWToken(jwtoken string) (*JWTClaims, error) {
+func (s *authServiceImpl) DecodeJWToken(jwtoken string, refreshType bool) (*JWTClaims, error) {
 	token, err := jwt.Parse(jwtoken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtSecret, nil
+		if refreshType {
+			return refreshJwtSecret, nil
+		} else {
+			return accessJwtSecret, nil
+		}
 	})
 
 	if err != nil {

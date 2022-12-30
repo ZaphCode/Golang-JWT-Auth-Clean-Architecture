@@ -1,6 +1,7 @@
 version: '3.9'
 services:
   go_auth_app:
+    container_name: go_auth_app
     build: .
     ports:
       - "8600:8080"
@@ -8,26 +9,23 @@ services:
       - .:/usr/src/app
     depends_on: 
       - auth_pgsql_db
-    environment: 
-        - PGSQL_DSN=host=auth_pgsql_db user=zaphkiel password=zaph_pg_pass dbname=jwt_auth_db port=5432 sslmode=disable
-        - JWT_SECRET=qwertyuiop-asdfghjkl-123456789
-        - PORT=8080
   auth_pgsql_db:
     container_name: auth_pgsql_db
     image: postgres
     restart: always
     environment: 
-      - POSTGRES_USER=zaphkiel
-      - POSTGRES_PASSWORD=zaph_pg_pass
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
       - POSTGRES_DB=jwt_auth_db
     ports: 
       - "5400:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data/
   pgadmin:
+      container_name: pgadmin
       image: dpage/pgadmin4
       environment: 
-        - PGADMIN_DEFAULT_EMAIL=zaph@admin.com
+        - PGADMIN_DEFAULT_EMAIL=admin@admin.com
         - PGADMIN_DEFAULT_PASSWORD=admin
       ports:
         - "5480:80"

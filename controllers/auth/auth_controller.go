@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"strings"
+	"os"
 	"time"
 
 	"github.com/ZaphCode/auth-jwt-app/controllers/auth/dtos"
@@ -77,6 +77,14 @@ func (c AuthController) SignUp(ctx *fiber.Ctx) error {
 		})
 	}
 
+	ctx.Cookie(&fiber.Cookie{
+		Name:     os.Getenv("REFRESH_TOKEN_COOKIE"),
+		Value:    refreshToken,
+		HTTPOnly: true,
+		Expires:  time.Now().Add(24 * 5 * time.Hour),
+		SameSite: "lax",
+	})
+
 	return ctx.Status(fiber.StatusCreated).JSON(apiUtils.SuccessResponse{
 		Status:  "success",
 		Message: "User created",
@@ -134,13 +142,21 @@ func (c AuthController) SignIn(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
-			Message: "Error creating jwtokens",
+			Message: "Error creating tokens",
 		})
 	}
 
+	ctx.Cookie(&fiber.Cookie{
+		Name:     os.Getenv("REFRESH_TOKEN_COOKIE"),
+		Value:    refreshToken,
+		HTTPOnly: true,
+		Expires:  time.Now().Add(24 * 5 * time.Hour),
+		SameSite: "lax",
+	})
+
 	return ctx.Status(fiber.StatusOK).JSON(apiUtils.SuccessResponse{
 		Status:  "success",
-		Message: "User created",
+		Message: "Success sigh in",
 		Data: fiber.Map{
 			"user":          user,
 			"access_token":  accessToken,
@@ -163,25 +179,43 @@ func (c AuthController) AuthUser(ctx *fiber.Ctx) error {
 
 	return ctx.Status(fiber.StatusOK).JSON(apiUtils.SuccessResponse{
 		Status:  "success",
-		Message: "test",
+		Message: "User data retrived",
 		Data:    user,
 	})
 }
 
 func (c AuthController) RefreshToken(ctx *fiber.Ctx) error {
-	refreshToken := ctx.Get("Token", "")
+	method := ctx.Query("method", "cookie")
 
-	claims, err := c.authService.DecodeJWToken(refreshToken)
+	var refreshToken string
+
+	switch method {
+	case "cookie":
+		refreshToken = ctx.Cookies(os.Getenv("REFRESH_TOKEN_COOKIE"))
+	case "header":
+		refreshToken = ctx.Get(os.Getenv("REFRESH_TOKEN_HEADER"))
+	default:
+		refreshToken = ctx.Cookies(os.Getenv("REFRESH_TOKEN_COOKIE"))
+	}
+
+	if refreshToken == "" {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(apiUtils.ErrorResponse{
+			Status:  "fail",
+			Message: "Missing refresh token",
+		})
+	}
+
+	claims, err := c.authService.DecodeJWToken(refreshToken, true)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
-			Message: "Invalid Token",
+			Message: "Invalid refresh token",
 			Detail:  err.Error(),
 		})
 	}
 
-	accessToken, err := c.authService.CreateJWToken(*claims, time.Minute*5)
+	accessToken, err := c.authService.CreateJWToken(*claims, time.Minute*5, false)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
@@ -193,41 +227,33 @@ func (c AuthController) RefreshToken(ctx *fiber.Ctx) error {
 
 	return ctx.Status(fiber.StatusOK).JSON(apiUtils.SuccessResponse{
 		Status:  "success",
-		Message: "User created",
+		Message: "Token refreshed",
 		Data:    accessToken,
 	})
 }
 
 //* Middlewares
 func (c AuthController) JWTRequiredMiddleware(ctx *fiber.Ctx) error {
-	authHeader := ctx.Get("Authorization", "")
+	accessToken := ctx.Get(os.Getenv("ACCESS_TOKEN_HEADER"))
 
-	if authHeader == "" {
-		return ctx.Status(fiber.StatusBadRequest).JSON(apiUtils.ErrorResponse{
+	if accessToken == "" {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
-			Message: "No token provided",
+			Message: "Missing access token",
 		})
 	}
 
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		return ctx.Status(fiber.StatusNotAcceptable).JSON(apiUtils.ErrorResponse{
-			Status:  "fail",
-			Message: "Invalid token format",
-		})
-	}
-
-	access_token := strings.Split(authHeader, "Bearer ")[1]
-
-	decoded_token_claims, err := c.authService.DecodeJWToken(access_token)
+	decodedTokenClaims, err := c.authService.DecodeJWToken(accessToken, false)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(apiUtils.ErrorResponse{
 			Status:  "fail",
 			Message: "Invalid access token",
+			Detail:  err.Error(),
 		})
 	}
 
-	ctx.Locals("user_data", decoded_token_claims)
+	ctx.Locals("user_data", decodedTokenClaims)
 
 	return ctx.Next()
 }

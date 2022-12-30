@@ -9,10 +9,12 @@ import (
 )
 
 func GetPGSQLConnection() *gorm.DB {
-	db, err := gorm.Open(postgres.Open(os.Getenv("PGSQL_DNS")))
+	dsn := os.Getenv("PGSQL_DSN")
+
+	db, err := gorm.Open(postgres.Open(dsn))
 
 	if err != nil {
-		log.Fatal(err.Error(), "Connection error")
+		log.Fatal(">>> Connection error", err.Error())
 	}
 
 	return db
