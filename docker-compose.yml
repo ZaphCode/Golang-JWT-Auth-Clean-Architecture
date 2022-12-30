@@ -8,15 +8,15 @@ services:
     volumes:
       - .:/usr/src/app
     depends_on: 
-      - auth_pgsql_db
+      - auth_db
   auth_pgsql_db:
-    container_name: auth_pgsql_db
+    container_name: auth_db
     image: postgres
     restart: always
     environment: 
-      - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=jwt_auth_db
+      - POSTGRES_USER=test-user
+      - POSTGRES_PASSWORD=test-password
+      - POSTGRES_DB=auth_db
     ports: 
       - "5400:5432"
     volumes:
@@ -25,11 +25,11 @@ services:
       container_name: pgadmin
       image: dpage/pgadmin4
       environment: 
-        - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+        - PGADMIN_DEFAULT_EMAIL=zaph@admin.com
         - PGADMIN_DEFAULT_PASSWORD=admin
       ports:
         - "5480:80"
       depends_on: 
-        - auth_pgsql_db
+        - auth_db
 volumes:
   postgres_data:

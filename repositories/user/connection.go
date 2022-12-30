@@ -11,6 +11,8 @@ import (
 func GetPGSQLConnection() *gorm.DB {
 	dsn := os.Getenv("PGSQL_DSN")
 
+	log.Println(dsn)
+
 	db, err := gorm.Open(postgres.Open(dsn))
 
 	if err != nil {
